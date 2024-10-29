@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Circle Image Crop Tool v0.1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #cropArea {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            overflow: hidden;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        #previewImage {
+            position: absolute;
+            cursor: move;
+        }
+        #cropMask {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #zoomSlider {
+            width: 200px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Circle Image Crop Tool</h1>
+    
+    <div class="container">
+        <input type="file" id="imageInput" accept="image/*">
+        
+        <div id="cropArea">
+            <img id="previewImage" draggable="false">
+            <div id="cropMask"></div>
+        </div>
+        
+        <div class="controls">
+            <!-- Zoom label and slider -->
+            <label for="zoomSlider">Zoom:</label>
+            <input type="range" id="zoomSlider" min="50" max="200" value="100">
+            
+            <!-- Export Dimensions label and dropdown -->
+            <label for="exportSize">Export Dimensions:</label>
+            <select id="exportSize">
+                <option value="400">400x400</option>
+                <option value="800">800x800</option>
+                <option value="1200">1200x1200</option>
+            </select>
+            
+            <button id="downloadBtn">Download Cropped Image</button>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const previewImage = document.getElementById('previewImage');
+        const cropArea = document.getElementById('cropArea');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const exportSize = document.getElementById('exportSize');
+
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        // Handle image upload
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewImage.src = event.target.result;
+                    previewImage.onload = function() {
+                        const cropSize = cropArea.offsetWidth;
+                        const imgAspectRatio = previewImage.naturalWidth / previewImage.naturalHeight;
+                        const cropAspectRatio = 1; // circle is square
+
+                        let scale;
+                        if (imgAspectRatio > cropAspectRatio) {
+                            scale = (cropSize / previewImage.naturalHeight) * 100;
+                        } else {
+                            scale = (cropSize / previewImage.naturalWidth) * 100;
+                        }
+
+                        zoomSlider.value = Math.max(scale, 100);
+                        
+                        const zoomScale = zoomSlider.value / 100;
+                        previewImage.style.width = (previewImage.naturalWidth * zoomScale) + 'px';
+                        previewImage.style.height = 'auto';
+                        
+                        centerImage();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Dragging functionality
+        cropArea.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mouseleave', dragEnd);
+
+        function dragStart(e) {
+            if (previewImage.src) {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                
+                if (e.target === previewImage) {
+                    isDragging = true;
+                }
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+                setTranslate(currentX, currentY, previewImage);
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+
+        // Zoom functionality
+        zoomSlider.addEventListener('input', function(e) {
+            const scale = e.target.value / 100;
+            previewImage.style.width = (previewImage.naturalWidth * scale) + 'px';
+            previewImage.style.height = 'auto';
+        });
+
+        // Center image
+        function centerImage() {
+            const rect = previewImage.getBoundingClientRect();
+            const areaRect = cropArea.getBoundingClientRect();
+            
+            xOffset = (areaRect.width - rect.width) / 2;
+            yOffset = (areaRect.height - rect.height) / 2;
+            
+            setTranslate(xOffset, yOffset, previewImage);
+            
+            currentX = xOffset;
+            currentY = yOffset;
+            initialX = xOffset;
+            initialY = yOffset;
+        }
+
+        // Download functionality with export size selection
+        downloadBtn.addEventListener('click', function() {
+            if (!previewImage.src) return;
+
+            const size = parseInt(exportSize.value);  
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = size;
+            canvas.height = size;
+
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.clip();
+
+            const rect = previewImage.getBoundingClientRect();
+            const areaRect = cropArea.getBoundingClientRect();
+            
+            const scale = previewImage.width / previewImage.naturalWidth;
+            const dx = (areaRect.left - rect.left) / scale;
+            const dy = (areaRect.top - rect.top) / scale;
+            
+            const scaledCropSize = cropArea.offsetWidth / scale; // Adjusts crop area size to match zoom scale
+            
+            ctx.drawImage(
+                previewImage,
+                dx, dy,
+                scaledCropSize, scaledCropSize, // Corrected for scaling to match output size
+                0, 0,
+                size, size
+            );
+
+            const link = document.createElement('a');
+            link.download = `cropped-image-${size}x${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>
+
