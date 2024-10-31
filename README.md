@@ -2,7 +2,7 @@
 
 Upload any photo and cut the edges off to create a round image. 
 
-<img src="(https://onescales.com/cdn/shop/articles/Screenshot_2024-10-31_at_1.39.25_PM_1920x.png?v=1730353172)" width="600"/>
+<img src="https://onescales.com/cdn/shop/articles/Screenshot_2024-10-31_at_1.39.25_PM_1920x.png?v=1730353172" width="600"/>
 
 
 # Features
