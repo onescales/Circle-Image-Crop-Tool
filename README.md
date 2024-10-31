@@ -9,4 +9,4 @@ Upload any photo and cut the edges off to create a round image.
 - 100% in the browser. No sending to external servers for processing.
 
 # Try it Out
-- Coming Soon
+- https://onescales.com/blogs/main/circle-image-crop-tool
