@@ -13,3 +13,6 @@ Upload any photo and cut the edges off to create a round image.
 
 # Try it Out
 - https://onescales.com/blogs/main/circle-image-crop-tool
+
+# Support Us / Donate
+If this helped you in any way, please consider supporting us at https://onescales.com/pages/support-us
